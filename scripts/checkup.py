@@ -29,6 +29,7 @@
 """
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -105,6 +106,15 @@ def glyph_audit(src):
     return bad, fixed, None
 
 
+def _page_count(pdf):
+    """poppler 缺失时用 pypdf 数页数；都失败则返回空列表（由调用方如实报告）。"""
+    try:
+        from pypdf import PdfReader
+        return len(PdfReader(pdf).pages)
+    except Exception:
+        return []
+
+
 def ink_profile(png, dpi):
     """逐行返回 (y_pt, x_max_pt, x_min_pt)，顶左原点；只含 y ∈ [40, 800] 的行。"""
     from PIL import Image
@@ -176,6 +186,10 @@ def main():
                 ensure_ascii=False, indent=1), encoding="utf-8")
         return 0
 
+    # ── 外部依赖：poppler（pdfinfo / pdftoppm）。缺失时降级并如实说明，不抛栈 ──
+    have_info = shutil.which("pdfinfo") is not None
+    have_ppm = shutil.which("pdftoppm") is not None
+
     lm, rm, tm, bm = [float(x) * MM for x in a.margins.split(",")]
     FRAME_L, FRAME_R = lm, PAGE_W - rm
     FRAME_T, FRAME_B = tm, PAGE_H - bm
@@ -184,8 +198,11 @@ def main():
     if a.pages:
         pages = [int(x) for x in a.pages.split(",")]
     else:
-        info = subprocess.run(["pdfinfo", a.pdf], capture_output=True, text=True).stdout
-        pages = list(range(1, int(info.split("Pages:")[1].split()[0]) + 1))
+        if have_info:
+            info = subprocess.run(["pdfinfo", a.pdf], capture_output=True, text=True).stdout
+            pages = list(range(1, int(info.split("Pages:")[1].split()[0]) + 1))
+        else:
+            pages = _page_count(a.pdf)
 
     tmp = Path(tempfile.mkdtemp(prefix="checkup_"))
     problems, notes = [], []
@@ -218,11 +235,17 @@ def main():
                 problems.append((p, "上下", 0.0, round(min(ys), 1), round(max(ys), 1)))
 
     print("PDF：%s" % a.pdf)
-    print("检查 %d 页 | dpi=%d | 版心 x=[%.2f, %.2f]  y=[%.2f, %.2f]"
-          % (len(pages), a.dpi, FRAME_L, FRAME_R, FRAME_T, FRAME_B))
+    if not have_ppm:
+        print("像素体检：跳过 —— 未找到 pdftoppm（poppler-utils）")
+        print("  安装：Debian/UOS  sudo apt install poppler-utils ｜ macOS  brew install poppler")
+    else:
+        print("检查 %d 页 | dpi=%d | 版心 x=[%.2f, %.2f]  y=[%.2f, %.2f]"
+              % (len(pages), a.dpi, FRAME_L, FRAME_R, FRAME_T, FRAME_B))
     for p, x, why in notes:
         print("  （p%-3d 墨迹至 x=%.1f：%s）" % (p, x, why))
-    if problems:
+    if not have_ppm:
+        print("\n结果：像素体检未执行（缺 pdftoppm）—— 不能据此认为版面合格")
+    elif problems:
         print("\n结果：%d 处越界 —— 内容可能被裁掉，必须修" % len(problems))
         for p, side, x, y0, y1 in problems:
             print("  p%-3d %s 越界  x=%.1f  y=[%.1f, %.1f]" % (p, side, x, y0, y1))
