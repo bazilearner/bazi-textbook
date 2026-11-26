@@ -1,7 +1,7 @@
 ---
 name: bazi-full-analysis
 description: 八字命理全流程推演——按「起盘 → 定旺衰 → 取用神 → 辨格局 → 断岁运」五步教学式推导，从排盘、真太阳时校正、得令/得地/得生/得助四问、四门并参（格局/调候/理法/病药）到十神六亲、神煞、疾病、富贵穷通、岁运应期，并可做家庭成员合参，最后出中文富排版 PDF。**零外部知识依赖**（不挂任何知识库也能出项数齐全的报告：全部判断规则，以及《子平真诠》《滴天髓》《穷通宝鉴》《神峰通考》《三命通会》《渊海子平》等典籍条文，均已内置在 references/，引文标书名篇名）；**唯一外部包**为 `lunar-typescript`（只用于节气表与农历换算，首次 `npm install` 一次，装好后完全离线可用，见「前置：依赖」）；重排 PDF 另需 reportlab/pypdf。触发词：排八字、八字推演、批八字、命理分析、教学版命理、一步步推、合婚、合参、看用神、看旺衰、看格局、大运流年、岁运应期、命盘。
-version: 1.5.1
+version: 1.5.2
 license: MIT
 agent_created: true
 ---
@@ -520,14 +520,6 @@ doc.build(story)
 > 或者截掉 build 段再 `exec` 源文件。本项目曾因此白查一轮：看到 `story` 长度 0，误以为「零残留」。
 
 
-发邮件（可选；`mail.py` 依赖本机已配置好的邮件连接器，需把脚本里的连接器名改成你环境中的名字）：
-
-```bash
-P=<bin>/python/envs/default/bin/python
-$P mail.py send --to recipient@example.com --subject "主题" --body "正文" --attach 报告.pdf
-$P mail.py check --subject "主题"     # 发完必须回查，确认没有重复发送
-```
-
 ### 第 9 步 · 多版本合并与分歧裁决（**条件触发**：同一命盘已存在另一份推演时）
 
 触发情形：用户提供了别人写的命理报告、往年自己出的报告、或要求「核对两版哪个更准」。
@@ -586,14 +578,6 @@ $P mail.py check --subject "主题"     # 发完必须回查，确认没有重�
 | **人元司令算错（节气表同名不同年）** | `lunar-typescript` 的 `getJieQiTable()` 里「上一农历年的节气」用拼音大写键（`DA_XUE`/`XIAO_HAN`/`LI_CHUN`…），与中文键**同名不同年**；若把两者当同名取「最后一个」，会取到次年那个 → 节后天数变负 → 司令为空 | 函数已收归 `paipan.js renYuan()`：**在所有同名候选中取「不晚于出生时刻」的那个**。⚠ **禁止在其它脚本里另写一份节气查表**（各写一份必算出不同司令） |
 | **天干层各脚本各写一份** | `detail.js` 与 `geju.js` 各写一套五合/相冲判定，同一命盘在不同报告里「天干层」结论不一 | 统一调 `paipan.js ganRelations()`（已导出 `ganRelations`/`GAN_HE5`/`GAN_CHONG4`） |
 | **岁运只写吉凶，不写「怎么引动」** | 「此运吉／此运凶」，读者不知发生了什么 | 给**引动链**表（关系 → 被引动之字 → 该字十神 → 落宫 → 所主），由 `suiyun.js` 供货；并核**填实虚拱**；**引动表属第④层，不得当主题** |
-| **邮件重复发送** | 部分邮件连接器返回**纯 JSON 而不是 SSE**，按 SSE 解析会把响应丢掉，误判失败而重发 | 用 `mail.py`（两种格式都兼容），且**发完必回查 sent** |
-| 邮件连接器名 | `mail.py` 里的连接器名是占位值（默认 `qq-mail`） | 按本机 `CODEBUDDY_MCP_CONFIG` 中的实际名称改 |
-| 邮件参数名 | `ListMessages` 用 `dir` 不是 `folder`，且必须带 `alias_id` | 见 `mail.py` |
-| **`to` / `cc` 类型错** | 传字符串或字符串数组都报 `schema_type: object`。**必须是对象数组** `[{"email":"x@y.com"}]` | `mail.py` 已内置 `rcpts()` 归一化 |
-| **attachments 字段不全** | 只给 filename/content_type/content 会校验失败。**五项缺一不可**：`filename`/`content_type`/`content`(base64)/`size`/`sha1` | `mail.py` 已自动补齐 |
-| **发信被要求确认** | 返回 `CONFIRMATION_REQUIRED` 时，脚本流程会卡住 | 载荷里带 `skip_confirmation: True` |
-| **列表「0 封」误报** | `ListMessages` 返回 `{"data":{"data":[...]}}`，解包后邮件数组在 `data` 键而非 `messages` 键。只读 `messages` 会看到 0 封，从而**误以为信没发出去而重发** | `mail.py` 两个键都兼容 |
-| 附件过大 | 连接器上限由 `GetMe().constraints.max_attachment_size_bytes` 决定（实测 1MB／单封合计 3MB／最多 3 个） | `mail.py` 会读约束并拦截；超限就压缩或分卷 |
 | weasyprint 报错 | `undefined symbol: pango_font_get_hb_font` | 换 reportlab |
 | 用命理断子女性别/手足数 | 实测常不验 | 不要断，见 `judgment-core.md` 第三节 |
 | **把可选增强写进主流程** | 曾把「从知识库取正文」当成必经步骤，还为它单设一节「节制纪律」，导致**无知识库时技能看起来跑不动** | 知识源一律先落到 `references/`；可选增强只在文末附录出现，且必须写明「无则跳过」 |
@@ -687,4 +671,3 @@ $P mail.py check --subject "主题"     # 发完必须回查，确认没有重�
 | `scripts/family.js` | 家庭成员合参 |
 | `scripts/pdfkit.py` | PDF 版式（跨平台字体，支持 ttc 子字体）；**内建表格两道结构检查**（每行字段数＝声明列数、列宽合计 ≤ `CONTENT_W`） |
 | `scripts/checkup.py` | **出稿前体检工具**（第五查）：① 像素级版面体检——渲染成图数墨迹像素，专查「表列被画到纸外」「末行压出页边距」等**文字层查不出**的问题；② `--markers` 文字层标记残留检查（抓漏转的 `**`/`<b>`/`&lt;`）；③ `--glyphs` 字形预检——吃**源文本**、核真实字体 cmap，报出会被静默丢弃的缺字形字符（**必须渲染前跑**） |
-| `scripts/mail.py` | 邮件投递（可选） |
