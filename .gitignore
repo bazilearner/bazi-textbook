@@ -1,0 +1,24 @@
+# 依赖
+node_modules/
+package-lock.json
+__pycache__/
+*.pyc
+.venv/
+envs/
+
+# 运行产物
+out/
+*.pdf
+!examples/*.pdf
+*.log
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# 个人生成的报告（防止误提交真实命主资料）
+report_*/
+*报告*.pdf
