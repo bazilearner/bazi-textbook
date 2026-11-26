@@ -1,4 +1,4 @@
 # 出 PDF 时才需要；排盘与判读不需要任何 Python 包
+# 体检脚本另需系统级 poppler-utils（pdfinfo / pdftoppm），缺失时自动跳过像素检查
 reportlab>=4.0
 pypdf>=3.0
-requests>=2.31
