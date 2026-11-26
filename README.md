@@ -92,10 +92,10 @@
 
 ```bash
 # Claude Code
-git clone https://github.com/<你的用户名>/bazi-textbook.git ~/.claude/skills/bazi-full-analysis
+git clone https://github.com/bazilearner/bazi-textbook.git ~/.claude/skills/bazi-full-analysis
 
 # WorkBuddy / 其他兼容目录
-git clone https://github.com/<你的用户名>/bazi-textbook.git ~/.workbuddy/skills/bazi-full-analysis
+git clone https://github.com/bazilearner/bazi-textbook.git ~/.workbuddy/skills/bazi-full-analysis
 ```
 
 **方式 B：手动**——下载仓库 ZIP，解压后把整个文件夹放到 `~/.claude/skills/bazi-full-analysis/`（目录名随意，但要保持内部结构）。
@@ -213,7 +213,7 @@ pattern (geju) identification, and luck-cycle analysis — with classical citati
 Outputs a step-by-step Chinese report (PDF) that shows *how* each conclusion was derived, not just the conclusion.
 
 ```bash
-git clone https://github.com/<your-name>/bazi-textbook.git ~/.claude/skills/bazi-full-analysis
+git clone https://github.com/bazilearner/bazi-textbook.git ~/.claude/skills/bazi-full-analysis
 cd ~/.claude/skills/bazi-full-analysis && npm install
 ```
 
