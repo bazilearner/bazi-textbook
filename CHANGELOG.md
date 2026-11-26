@@ -1,5 +1,13 @@
 # 更新记录
 
+## v1.5.1 — 展示与适配
+
+- 新增 `docs/preview-*.png`：由技能自带 `pdfkit.py` 实际渲染的报告页，数值取自 `wangshuai.js` 输出
+- README 首屏加报告预览图与英文摘要，海外读者不必翻到文末
+- 安装说明补齐 DeepSeek Harness（dsh）：技能目录 `~/.dsh/skills/`，同一套 `SKILL.md` 约定，无需改文件
+- 补充 dsh 的玲珑包 node 不在 PATH 时的 `NODE_PATH` 写法
+- 修正 README 安装命令中的用户名占位符
+
 ## v1.5.0 — 首个公开发布版
 
 - 新增 `references/classics-index.md`：重点典籍导读（十部书的成书、体系定位、必用篇目、判据→出处速查、版本分歧、阅读路径）
