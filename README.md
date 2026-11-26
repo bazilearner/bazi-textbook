@@ -5,10 +5,27 @@
 一套给 AI 智能体（Claude Code / WorkBuddy / Codex / Cursor 等支持 Agent Skills 的工具）使用的八字推演技能。
 脚本负责把数算准，典籍负责给依据，报告按教材的写法把推导过程摊开给你看。
 
-`v1.5.0` · `MIT` · **完全离线** · 简体中文
+`v1.5.1` · `MIT` · **完全离线** · 简体中文
 
 > 常见开源八字项目给你一张盘和一堆五行数字；
 > 这个技能给你的是**「为什么先算这一步、这一步怎么数出来、结果怎么影响下一步」**。
+
+> **English**: an Agent Skill for BaZi (Four Pillars) that shows its work — chart casting, strength
+> scoring, structure (geju) identification and luck cycles, where every step exposes its formula and
+> cites the classical source. Citations ship as a local lookup table, so it runs fully offline and
+> outputs an 8–30 page PDF report. Jump to [English summary](#english).
+
+## 报告长什么样（真实渲染，非示意图）
+
+<p align="center">
+  <img src="docs/preview-1.png" width="45%" alt="报告封面" />
+  <img src="docs/preview-2.png" width="45%" alt="定旺衰：四问与力量计分" />
+</p>
+
+上图由技能自带的 `scripts/pdfkit.py` 渲染，表里的分数取自 `scripts/wangshuai.js` 的实际输出——
+不是设计稿，是流水线真跑出来的页面。命例为虚构示例（`1990-05-15 14:20` 男），不含任何真实命主数据。
+
+想直接看完整版式：[**下载 3 页示例报告 `docs/sample-report.pdf`**](docs/sample-report.pdf)。
 
 ---
 
@@ -96,9 +113,17 @@ git clone https://github.com/bazilearner/bazi-textbook.git ~/.claude/skills/bazi
 
 # WorkBuddy / 其他兼容目录
 git clone https://github.com/bazilearner/bazi-textbook.git ~/.workbuddy/skills/bazi-full-analysis
+
+# DeepSeek Harness（dsh）
+git clone https://github.com/bazilearner/bazi-textbook.git ~/.dsh/skills/bazi-full-analysis
 ```
 
-**方式 B：手动**——下载仓库 ZIP，解压后把整个文件夹放到 `~/.claude/skills/bazi-full-analysis/`（目录名随意，但要保持内部结构）。
+四家用的是同一套 `SKILL.md` 约定（YAML frontmatter + 同目录放 `references/`、`scripts/`），
+**不需要为 dsh 单独改文件**，放对目录即可被识别。
+
+**方式 B：手动**——下载仓库 ZIP，解压后把整个文件夹放到 `~/.claude/skills/bazi-full-analysis/`
+（dsh 用户放 `~/.dsh/skills/bazi-full-analysis/`，WorkBuddy 用户放 `~/.workbuddy/skills/bazi-full-analysis/`；
+目录名随意，但要保持内部结构）。
 
 ### 2. 装依赖（只需一次）
 
@@ -109,6 +134,11 @@ pip install -r requirements.txt   # 出 PDF 才需要
 ```
 
 装完之后**完全离线可用**。
+
+> **dsh 用户注意**：dsh 是玲珑包，自带的 `node` 不一定在系统 `PATH` 里。两种解法任选——
+> ① 直接用系统 node ≥18；② 用 dsh 包内的 node 跑脚本，并显式指定依赖位置：
+> `export NODE_PATH="$HOME/.dsh/skills/bazi-full-analysis/node_modules"`。
+> 报 `MODULE_NOT_FOUND: lunar-typescript` 就是这一条没设对，与技能本身无关。
 
 ### 3. 说人话就能用
 
@@ -169,9 +199,15 @@ bazi-textbook/
 │   ├── pdfkit.py                 # PDF 版式
 │   ├── checkup.py                # 出稿前体检
 │   └── mail.py                   # 邮件投递（可选）
-└── examples/
-    ├── sample-chart.txt          # 示例输出（虚构命例）
-    └── sample-prompts.md         # 三句可直接复制的提示词
+├── examples/
+│   ├── sample-chart.txt          # 示例输出（虚构命例）
+│   └── sample-prompts.md         # 三句可直接复制的提示词
+└── docs/
+    ├── preview-1.png             # README 预览图：报告封面
+    ├── preview-2.png             # README 预览图：定旺衰页
+    ├── preview-3.png             # README 预览图：辨格局页
+    ├── sample-report.pdf         # 3 页示例报告，可直接下载看效果
+    └── make-preview.py           # 预览图与示例报告的生成脚本（可重跑）
 ```
 
 设计原则一句话：**数字归脚本，判读归文案**。凡是脚本能算的，报告里一律不手算。
