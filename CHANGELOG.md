@@ -1,5 +1,14 @@
 # 更新记录
 
+## v1.5.3 — 外部依赖缺失时不再崩
+
+- `checkup.py`：缺 `pdftoppm` / `pdfinfo`（poppler-utils）时**降级跳过并明确说明**，
+  不再抛 `FileNotFoundError` 栈；结论行改为「像素体检未执行」，**不会假装通过**
+- `checkup.py`：`pdfinfo` 缺失时改用 `pypdf` 数页数
+- `requirements.txt`：去掉已无用途的 `requests`（原为已移除的 `mail.py` 使用），
+  并注明 poppler 是可选系统依赖
+- 背景：市场/沙箱环境通常不预装 poppler，原先会让「出稿前体检」这一步直接报错中断
+
 ## v1.5.2 — 移除邮件投递
 
 - 移除 `scripts/mail.py`（邮件投递）。该功能依赖调用方本机已配置的邮件连接器，
