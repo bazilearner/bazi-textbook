@@ -140,13 +140,20 @@
 ## 七、两个工具，一前一后
 
 ```bash
-# 开工：生成底稿（表已摆好位置，缺原料会显式标 [缺]）
+# ① 开工：生成底稿（表已摆好位置，缺原料会显式标 [缺]）
 node scripts/worksheet.js "1990-05-15 14:20" 1 116.41 2026 2036 > 底稿.md
 
-# 收工：量这份 PDF 够不够厚，以及哪一章薄
+# ② 写完稿（Markdown）：一条命令出 PDF——不要再手写 reportlab
+python3 scripts/render.py 报告.md -o 报告.pdf --title "八字推演" --subtitle "男命 · 1990"
+
+# ③ 收工：量这份 PDF 够不够厚，以及哪一章薄
 python3 scripts/depthcheck.py 报告.pdf
 python3 scripts/depthcheck.py 报告.pdf --style conclusion   # 结论式另有基线
 ```
+
+> **出 PDF 是流水线的一步，不是「另说」**：`render.py` 把 Markdown 翻成 PDF，
+> 章自动分页、表格自动分列宽、封面与页脚齐备；字体、净化、表格两道检查全交给 `pdfkit`。
+> 手写 reportlab 只在需要特殊版面时才做——**每手写一次，就把那些坑重踩一遍**。
 
 `worksheet.js` 管「表不能漏」，`depthcheck.py` 管「漏了能查出来」。
 两个都不替代判断——它们只保证**判断有地方可写、写了有人能核**。
