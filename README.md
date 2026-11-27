@@ -44,7 +44,7 @@
 | 六 | **回到你的问题** | 逐条回答 + 三个动作，与卷首结论必须一致 |
 
 **「厚」是量出来的，不是夸出来的**：`scripts/depthcheck.py` 给出页数／字数／分章字数，
-`scripts/worksheet.js` 先把三十八张表的位置占住。两条命令见〈五、报告长什么样〉。
+`scripts/worksheet.js` 先把三十九张表（五步十柱）的位置占住。两条命令见〈五、报告长什么样〉。
 
 > 经典原文一律附一句白话（「也就是说……」），神煞按「有没有／落哪柱／成立与否／何时兑现」讲，
 > 禁语表（孤克·克夫·血光·夭折）写进规范，不靠临场把握。
@@ -200,7 +200,7 @@ PDF 由 `scripts/pdfkit.py` 生成（reportlab，跨平台字体，支持 ttc �
 ### 深度是量出来的：两条命令
 
 ```bash
-# ① 开工：生成底稿——三十八张表按报告顺序摆好，缺原料显式标 [缺]
+# ① 开工：生成底稿——三十九张表按报告顺序摆好，缺原料显式标 [缺]
 node scripts/worksheet.js "1990-05-15 14:20" 1 116.41 2026 2036 > 底稿.md
 
 # ② 出 PDF：报告写成 Markdown，一条命令出稿（章自动分页 / 表格自动分列宽 / 封面页脚齐备）
@@ -212,7 +212,7 @@ python3 scripts/depthcheck.py 报告.pdf
 
 判据：**≥18 页、≥15 000 字、≥30 张表、分章字数全达标**。不过就不交稿——
 「薄」不是「简洁」，补法是回去补表，不是加形容词。基线全文见
-[`references/depth-baseline.md`](references/depth-baseline.md)（含「薄」的六种症状对照）。
+[`references/depth-baseline.md`](references/depth-baseline.md)（含「薄」的七种症状对照，第⑦条是「五步被合并」）。
 
 ---
 
@@ -242,7 +242,7 @@ bazi-textbook/
 │   ├── suiyun.js                 # 断岁运：引动链、填实虚拱、逐年扫描
 │   ├── tiaohou.js                # 调候查表（零依赖）
 │   ├── boundary.js               # 临界命例：双盘八项对照 + 骨架判定 + 待验项
-│   ├── worksheet.js              # 教学式底稿：三十八张表按报告顺序排好
+│   ├── worksheet.js              # 教学式底稿：三十九张表按报告顺序排好
 │   ├── truesolar.py              # 真太阳时与时辰边界
 │   ├── family.js                 # 家庭成员合参
 │   ├── pdfkit.py                 # PDF 版式
