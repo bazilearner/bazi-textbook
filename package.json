@@ -1,8 +1,8 @@
 {
   "name": "bazi-textbook",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "private": true,
-  "description": "Textbook-style BaZi (Four Pillars) analysis skill for AI agents: it answers your question first in plain language, then walks a five-step derivation with formulas and classical sources (every quote translated), renders 26 pages / 38 tables of reproducible process, and closes by answering you again with three concrete actions. Offline, Chinese PDF.",
+  "description": "Textbook-style BaZi (Four Pillars) analysis skill for AI agents: answers your question first in plain language, then walks the five-step derivation (chart → strength → yongshen → structure → luck cycles) with ten mandatory pillars of reproducible tables and classical sources, closes by answering you again with three concrete actions. Offline, 24–32 page Chinese PDF.",
   "keywords": [
     "bazi",
     "four-pillars",
