@@ -392,7 +392,10 @@ function makeChart(dt, gender, ziRule) {
     solar: birthStr, lunar: lunar.toString(), gender, p, ec, dayGan, yun, daYun, zi,
     wuxing: countWuXing(p),
     shiShen: {
-      gan: [p.year[0], p.month[0], dayGan, p.time[0]].map(g => g === dayGan ? '日主' : shiShen(dayGan, g)),
+      // 只有日柱天干才是「日主」；年月时的天干若与日干同字，是**比肩**，不是日主。
+      // 曾按「字相同 → 日主」判，于是甲日见甲月／甲时都印成「日主」，既错又会让
+      // 「比肩不充相神」这条规则失效（相神候选里认不出比肩）。
+      gan: [p.year[0], p.month[0], dayGan, p.time[0]].map((g, i) => i === 2 ? '日主' : shiShen(dayGan, g)),
       zhi: [p.year[1], p.month[1], p.day[1], p.time[1]].map(z => ZHI_HIDE[z].map(h2 => shiShen(dayGan, h2)))
     },
     shensha: shenSha(p)
