@@ -1,9 +1,15 @@
 {
   "name": "bazi-textbook",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
-  "description": "Textbook-style BaZi (Four Pillars) analysis skill for AI agents: chart casting, strength scoring, pattern identification, luck cycles, with classical citations built in.",
-  "keywords": ["bazi", "four-pillars", "chinese-metaphysics", "agent-skill", "claude-skill"],
+  "description": "Textbook-style BaZi (Four Pillars) analysis skill for AI agents: it answers the question first in plain language, then shows a five-step derivation with formulas and classical citations, and closes by answering the question again with concrete actions.",
+  "keywords": [
+    "bazi",
+    "four-pillars",
+    "chinese-metaphysics",
+    "agent-skill",
+    "claude-skill"
+  ],
   "license": "MIT",
   "dependencies": {
     "lunar-typescript": "^1.8.7"
