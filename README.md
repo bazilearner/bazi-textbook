@@ -5,7 +5,7 @@
 一套给 AI 智能体（Claude Code / WorkBuddy / Codex / Cursor 等支持 Agent Skills 的工具）使用的八字推演技能。
 脚本负责把数算准，典籍负责给依据，报告按教材的写法把推导过程摊开给你看。
 
-`v1.5.3` · `MIT` · **完全离线** · 简体中文
+`v1.5.4` · `MIT` · **完全离线** · 简体中文
 
 > 常见开源八字项目给你一张盘和一堆五行数字；
 > 这个技能给你的是**「为什么先算这一步、这一步怎么数出来、结果怎么影响下一步」**。
@@ -197,7 +197,8 @@ bazi-textbook/
 │   ├── truesolar.py              # 真太阳时与时辰边界
 │   ├── family.js                 # 家庭成员合参
 │   ├── pdfkit.py                 # PDF 版式
-│   └── checkup.py                # 出稿前体检
+│   ├── checkup.py                # 出稿前体检
+│   └── selftest.js               # 排盘口径自检（晚子时换日/五鼠遁，3360 个时刻）
 ├── examples/
 │   ├── sample-chart.txt          # 示例输出（虚构命例）
 │   └── sample-prompts.md         # 三句可直接复制的提示词
