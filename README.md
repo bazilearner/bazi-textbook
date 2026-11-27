@@ -176,6 +176,13 @@ pip install -r requirements.txt   # 出 PDF 才需要
 这是我们一家四口的出生时间，做合参，只看相互关系，不断吉凶
 ```
 
+**出 PDF 是流水线的一步，不用你写代码**：报告写成 Markdown，`scripts/render.py` 一条命令出稿
+（章自动分页、表格自动分列宽、封面页脚齐备），随后 `depthcheck.py` 量厚度、`checkup.py` 查版面。
+
+```bash
+python3 scripts/render.py 报告.md -o 报告.pdf --title "八字推演" --subtitle "男命 · 1990"
+```
+
 ---
 
 ## 五、报告长什么样
@@ -193,10 +200,13 @@ PDF 由 `scripts/pdfkit.py` 生成（reportlab，跨平台字体，支持 ttc �
 ### 深度是量出来的：两条命令
 
 ```bash
-# 开工：生成底稿——三十八张表按报告顺序摆好，缺原料显式标 [缺]
+# ① 开工：生成底稿——三十八张表按报告顺序摆好，缺原料显式标 [缺]
 node scripts/worksheet.js "1990-05-15 14:20" 1 116.41 2026 2036 > 底稿.md
 
-# 收工：量厚度——页数、字数、骨架、过程词、分章字数、禁语
+# ② 出 PDF：报告写成 Markdown，一条命令出稿（章自动分页 / 表格自动分列宽 / 封面页脚齐备）
+python3 scripts/render.py 报告.md -o 报告.pdf --title "八字推演" --subtitle "男命 · 1990"
+
+# ③ 收工：量厚度——页数、字数、骨架、过程词、分章字数、禁语
 python3 scripts/depthcheck.py 报告.pdf
 ```
 
@@ -238,6 +248,7 @@ bazi-textbook/
 │   ├── pdfkit.py                 # PDF 版式
 │   ├── checkup.py                # 出稿前体检（版面/标记/字形）
 │   ├── depthcheck.py             # 深度体检（页数/字数/分章字数/禁语）
+│   ├── render.py                 # Markdown → PDF：一条命令出稿
 │   └── selftest.js               # 排盘口径自检（晚子时换日/五鼠遁，3360 个时刻）
 ├── examples/
 │   ├── sample-chart.txt          # 示例输出（虚构命例）
