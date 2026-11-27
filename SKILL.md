@@ -1,7 +1,7 @@
 ---
 name: bazi-full-analysis
-description: 八字命理全流程推演——按「起盘 → 定旺衰 → 取用神 → 辨格局 → 断岁运」五步教学式推导，从排盘、真太阳时校正、得令/得地/得生/得助四问、四门并参（格局/调候/理法/病药）到十神六亲、神煞、疾病、富贵穷通、岁运应期，并可做家庭成员合参，最后出中文富排版 PDF。**零外部知识依赖**（不挂任何知识库也能出项数齐全的报告：全部判断规则，以及《子平真诠》《滴天髓》《穷通宝鉴》《神峰通考》《三命通会》《渊海子平》等典籍条文，均已内置在 references/，引文标书名篇名）；**唯一外部包**为 `lunar-typescript`（只用于节气表与农历换算，首次 `npm install` 一次，装好后完全离线可用，见「前置：依赖」）；重排 PDF 另需 reportlab/pypdf。**教学式可出 26 页、38 张表**（深度基线见 `references/depth-baseline.md`，`scripts/worksheet.js` 排底稿、`scripts/depthcheck.py` 量厚度）。触发词：排八字、八字推演、批八字、命理分析、教学版命理、一步步推、合婚、合参、看用神、看旺衰、看格局、大运流年、岁运应期、命盘。
-version: 1.7.0
+description: 八字命理全流程推演——按「起盘 → 定旺衰 → 取用神 → 辨格局 → 断岁运」五步教学式推导，从排盘、真太阳时校正、得令/得地/得生/得助四问、四门并参（格局/调候/理法/病药）到十神六亲、神煞、疾病、富贵穷通、岁运应期，并可做家庭成员合参，最后出中文富排版 PDF。**零外部知识依赖**（不挂任何知识库也能出项数齐全的报告：全部判断规则，以及《子平真诠》《滴天髓》《穷通宝鉴》《神峰通考》《三命通会》《渊海子平》等典籍条文，均已内置在 references/，引文标书名篇名）；**唯一外部包**为 `lunar-typescript`（只用于节气表与农历换算，首次 `npm install` 一次，装好后完全离线可用，见「前置：依赖」）；重排 PDF 另需 reportlab/pypdf；**出稿一条命令**（`scripts/render.py`，Markdown → PDF）。**教学式可出 26 页、38 张表**（深度基线见 `references/depth-baseline.md`，`scripts/worksheet.js` 排底稿、`scripts/depthcheck.py` 量厚度）。触发词：排八字、八字推演、批八字、命理分析、教学版命理、一步步推、合婚、合参、看用神、看旺衰、看格局、大运流年、岁运应期、命盘。
+version: 1.7.1
 license: MIT
 agent_created: true
 ---
@@ -518,20 +518,43 @@ $P depthcheck.py 报告.pdf --style conclusion
 > **另一头也要防**：v1.6.0 加了卷首与白话之后，出现过「人话写得好、推演只剩骨架」的回归
 > ——26 页的参考稿被写成 14 页。**白话是加法，不是减法**：加了卷首不等于可以少写两张表。
 
-```python
-import sys; sys.path.insert(0, "<skill>/scripts")
-import pdfkit
-pdfkit.register_fonts()
-S = pdfkit.styles()
-doc, story = pdfkit.make_doc(OUT, "标题", footer_left="页脚左", footer_right="页脚右")
-story += [pdfkit.table(rows, widths), pdfkit.kv_box("小标题", [("要点", "说明")], width)]
-doc.build(story)
+**出 PDF 不要再手写 reportlab**——报告写成 Markdown，一条命令出稿：
+
+```bash
+$P scripts/render.py 报告.md -o 报告.pdf --title "八字推演" --subtitle "男命 · 1981" \
+   --footer-left "教学式推演 · 男命 · 1981-02-28" --footer-right "bazi-textbook"
 ```
 
-- 用 `pdfkit`（reportlab）。**不要用 weasyprint**——部分系统上常因 pango 版本错配直接报错。
-- `<font color=...>` 里的颜色值**必须带 `#`**；Canvas 上用 `drawString` 不是 `text`。
-- 首屏用 PageTemplate 的 cover 模板，正文切 body 模板（`NextPageTemplate` + `PageBreak`）。
-- 生成后用 pypdf 抽查页数与文字层是否可提取。
+`render.py` 认得这些写法，够写完整报告，不必学新语法：
+
+| 写法 | 效果 |
+|---|---|
+| `## 章` / `### 节` / `#### 小节` | 章**自动另起一页**；节、小节顺排 |
+| `| a | b |` 连续多行 | 表格（首行表头，`|---|` 自动跳过，**列宽按内容自动分配**） |
+| `- 条目` / `1. 条目` / `> 引文` | 列表、引文块（经典原文用 `>`） |
+| `[分页]` / `<!-- pagebreak -->` | 强制分页 |
+| `![说明](路径)` | 插图，按版心等比缩放 |
+| `**加粗**`、`<b>`、`<font color="#a32d2d">` | 富文本（与 `pdfkit.rich()` 同一套） |
+| 文件开头 `--- title: … / subtitle: … / meta: … ---` | 封面（也可用命令行参数） |
+
+**为什么交给脚本**：字体注册、`Frame` 内边距清零、表格列数/列宽两道检查、缺字形净化、
+`**` 与 `<b>` 混写、页眉页脚——这些坑 `pdfkit.py` 都已踩过并修好，**手写一遍就等于重踩一遍**。
+`render.py` 只做 Markdown → flowable 的翻译，**不重复实现任何一条**（净化只有一处实现）。
+
+- 底色仍是 `pdfkit`（reportlab）。**不要用 weasyprint**——部分系统上常因 pango 版本错配直接报错。
+- 需要特殊版面（如自定义封面、插图排版、并排两栏）时，才回到手写：
+
+  ```python
+  import sys; sys.path.insert(0, "<skill>/scripts")
+  import pdfkit
+  pdfkit.register_fonts()
+  S = pdfkit.styles()
+  doc, story = pdfkit.make_doc(OUT, "标题", footer_left="页脚左", footer_right="页脚右")
+  story += [pdfkit.table(rows, widths), pdfkit.kv_box("小标题", [("要点", "说明")], width)]
+  doc.build(story)
+  ```
+
+- 生成后**必看页数**：`render.py` 会自报；接着跑 `depthcheck.py`（够不够厚）与 `checkup.py`（版面）。
 
 #### 出稿前六查（**每一条都是实测踩过的，缺一条就会出货带伤**）
 
@@ -652,6 +675,7 @@ doc.build(story)
 | **教学式写成「薄稿」：页数够、表不够** | 判读全对、每节都在，但四问只有四行、计分只报 38.3%、格局只写「正印格·成格」、岁运只写吉忌——**26 页的活写成 14 页**，读者拿不到可复算的过程。最要命的是：版面体检、字形预检、标记检查**全部通过**，没有任何一道闸门拦它 | ① 开工跑 `worksheet.js` 生成底稿（三十八张表按报告顺序摆好）；② 收工跑 `depthcheck.py` 量页数/字数/分章字数；③ 按 `depth-baseline.md` 的三十八张表逐张打勾。**「薄」不是「简洁」，补法是补表** |
 | **两份文件给的篇幅口径打架，模型取小的那个** | `report-blueprint.md` 说「第三章 4—8 页」（那是结论式的数），`detail-style.md` 说「全篇 18—30 页」——教学式第三章实际要 13—16 页。两处并读，模型按 4—8 页写，于是五步挤成两页半 | 篇幅**分两列**写（结论式／教学式），并声明「只按 blueprint 的页数写教学式，必薄」；厚度一律以 `depth-baseline.md` 为准 |
 | **加了「白话／抚慰层」就把推演写薄了** | v1.6.0 加了卷首一页纸与禁语表后，出现「人话写得好、推演只剩骨架」的回归：读者确实读得下去了，但翻到第三步发现只有结论、没有过程 | **白话是加法，不是减法**：卷首 400—600 字是**另加的一页**，不许从第三至五章里扣。核法：`depthcheck.py` 的分章字数——第三步低于 1 800 字就是被扣了 |
+| **内容写完了，PDF 没出来** | SKILL 原先给的是「一段要手抄的 reportlab 代码」：每次开新报告都要重抄字体注册、模板切换、建表、算列宽，抄漏一步就停在 Markdown；抄全了也容易把「Frame 内边距没清零」「`<font color>` 没带 #」「表格字段数多于列数」这些坑重踩一遍 | 报告写成 Markdown，跑 `python3 scripts/render.py 报告.md -o 报告.pdf`。**排版与净化一律委托 `pdfkit`**，`render.py` 只做 Markdown → flowable 的翻译。手写代码只留给特殊版面 |
 | **临界命例只写「已校正，无争议」** | `truesolar.py` 判了「必须双排」，报告却单盘直断；或想双排但手工找相邻时辰、手工 diff 八项，做一半就放弃 | 跑 `boundary.js "<生辰>" <性别> <经度>`：八项对照 + 骨架判定 + 待验项一次出齐，直接贴进 1.2 节与附录 A |
 | **报告像论文，不像给人看的** | 开篇先讲经度、均时差与「失令而死」，满页术语，引文一引一大段没有白话；读者两页就放下了。**内容全对，但没人读得完** | ① 开篇改成「卷首一页纸」（`plain-voice.md` §2 五段式），先答他的问题；② 边界与口径移附录 A；③ 术语首现即译；④ 每条引文后跟一句白话；⑤ 末章回到他的提问。**纪律：卷首 300 字内不出现未解释的术语** |
 | **神煞一句「只作色彩」打发** | 用户想听「我有没有天乙贵人」，报告只写「神煞不作判据」——心理需求没被接住 | 单设「神煞细读」一节：有没有／落哪柱（年 1—15、月 16—30、日 31—45、时 46+）／成立与否（坐旺坐绝、逢冲、空亡）／何时兑现／一句人话。**一段最多三个**，吉神落空＝空欢喜、凶煞逢冲＝转忧为喜 |
@@ -769,6 +793,7 @@ doc.build(story)
 | `scripts/pdfkit.py` | PDF 版式（跨平台字体，支持 ttc 子字体）；**内建表格两道结构检查**（每行字段数＝声明列数、列宽合计 ≤ `CONTENT_W`） |
 | `scripts/boundary.js` | **临界命例双盘**：三口径时刻 → 相邻时辰排盘 → **八项对照**（时柱／时干十神／藏干／五行官杀／长生／合拱／刑害／神煞）→ 骨架判定 → 待验项；与 `truesolar.py` 同式算均时差，两者可互核 |
 | `scripts/worksheet.js` | **教学式底稿**：按报告顺序把 `paipan/detail/wangshuai/geju/tiaohou/suiyun/boundary` 的输出摆到各自章节，每节附「必须有」的勾选清单；**表一张不漏**，缺原料标 `[缺]` |
+| `scripts/render.py` | **Markdown → PDF 出稿器**：章自动分页、表格自动分列宽、引文/列表/插图/封面齐备；排版与净化一律委托 `pdfkit`，不重复实现 |
 | `scripts/depthcheck.py` | **深度体检**（第六查）：量页数／去空白字数／骨架部件／过程词（推法·依据·本例）／**分章字数**／禁语；专抓「版面全绿但内容薄」 |
 | `scripts/selftest.js` | **排盘口径自检**：3360 个时刻批量验「时干＝五鼠遁(日干,时支)」、晚子时与次日 00:10 同盘、非子时时段与 lunar 原生逐项一致。**改过 paipan.js 必跑**，期望「违例 0」 |
 | `scripts/checkup.py` | **出稿前体检工具**（第五查）：① 像素级版面体检——渲染成图数墨迹像素，专查「表列被画到纸外」「末行压出页边距」等**文字层查不出**的问题；② `--markers` 文字层标记残留检查（抓漏转的 `**`/`<b>`/`&lt;`）；③ `--glyphs` 字形预检——吃**源文本**、核真实字体 cmap，报出会被静默丢弃的缺字形字符（**必须渲染前跑**） |
