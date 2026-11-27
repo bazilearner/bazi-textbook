@@ -200,8 +200,10 @@ function main() {
   ]);
 
   O.push('\n---\n');
-  O.push('底稿完。下一步：按 `references/depth-baseline.md` 的「三十张表清单」逐项打勾，');
-  O.push('缺一张就回去补——**表是这份报告的骨头，少了就是「薄」**。\n');
+  O.push('底稿完。下一步：');
+  O.push('① 按 `references/depth-baseline.md` 的「三十八张表」逐项打勾，缺一张就回去补；');
+  O.push('② 写成 Markdown，跑 `python3 scripts/render.py 报告.md -o 报告.pdf` 出稿（不必手写 reportlab）；');
+  O.push('③ 跑 `python3 scripts/depthcheck.py 报告.pdf` 量厚度——**表是骨头，少了就是「薄」**。\n');
 
   console.log(O.join('\n'));
 }
