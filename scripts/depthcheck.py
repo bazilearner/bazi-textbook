@@ -5,7 +5,7 @@
 
 为什么要有这一条：`checkup.py` 查的是**版面**（表格有没有画到纸外、字形有没有缺、标记有没有漏转），
 它管「印得对不对」。但它查不出另一种更常见的失败：**报告印得很好，就是薄**——
-教学式本该 26 页、三十张表，实际交了 13 页、十几张表，读者拿不到可复算的过程。
+教学式本该 26 页、三十九张表，实际交了 13 页、十几张表，读者拿不到可复算的过程。
 版面全绿，内容却不够。这一条专治「薄」。
 
 它量四件事：
@@ -59,6 +59,16 @@ BASE = {
             "辨格局": (r"第[四4]步.{0,6}辨格局", 2200),
             "断岁运": (r"第[五5]步.{0,6}断岁运", 2800),
             "分项": (r"(分项细读|第六节)", 1800),
+        },
+        # 五步十柱：每步两根柱子（A＝是什么，B＝凭什么），在**该步的段内**查，不在全文查。
+        # 全文查没有约束力——「四柱」在术语表里也出现；只有落在第一步的段内，才说明那一步真写了。
+        # 键必须与上面的 "chapters" 同名，靠它切段。
+        "pillars": {
+            "起盘": {"A": r"四柱", "B": r"大运"},
+            "定旺衰": {"A": r"四问", "B": r"(计分|得分|力量分)"},
+            "取用神": {"A": r"四门", "B": r"(五档|用.{0,2}相.{0,2}喜.{0,2}闲.{0,2}忌)"},
+            "辨格局": {"A": r"(成败|救应)", "B": r"相神"},
+            "断岁运": {"A": r"引动", "B": r"(填实|虚拱)"},
         },
         # 过程词：只有真写推演才会出现。下限按参考稿实测（推法 6／依据 11／本例 2）取八折
         "markers": {"推法": 4, "依据": 8, "本例": 2},
@@ -149,13 +159,35 @@ def main():
             marks.append((m.start(), name, need))
     marks.sort()
     chap_stat = []
+    seg = {}
     for i, (pos, name, need) in enumerate(marks):
         end = marks[i + 1][0] if i + 1 < len(marks) else len(flat)
         n = end - pos
         chap_stat.append((name, n, need, n >= need))
+        seg[name] = flat[pos:end]
     thin = [c for c in chap_stat if not c[3]]
     if chap_stat:
         chk("硬", "分章字数", "%d/%d 章达标" % (len(chap_stat) - len(thin), len(chap_stat)), "全达标", not thin)
+    # 五步标题必须全在：一个都没切出来时上面的「分章字数」会空过，这里补一道
+    need_steps = list(B.get("pillars", {}).keys())
+    lost = [k for k in need_steps if k not in seg]
+    if need_steps:
+        chk("硬", "五步标题", "%d/%d 步在" % (len(need_steps) - len(lost), len(need_steps)),
+            "全在", not lost)
+
+    # 五步十柱：A 柱回答「是什么」，B 柱回答「凭什么」。缺一根即「该步残缺」。
+    pillar_stat = []
+    for step in need_steps:
+        body = seg.get(step, "")
+        row = {"step": step, "chars": len(body), "A": False, "B": False}
+        for k in ("A", "B"):
+            row[k] = bool(body) and bool(re.search(B["pillars"][step][k], body))
+        pillar_stat.append(row)
+        if not body:
+            chk("硬", "柱子·%s" % step, "该步标题未识别", "A✓B✓", False)
+        else:
+            got = "%s %s" % ("A✓" if row["A"] else "A✗", "B✓" if row["B"] else "B✗")
+            chk("硬", "柱子·%s" % step, got, "A✓B✓", row["A"] and row["B"])
 
     banned = [w for w in BANNED if w in flat]
     chk("硬", "禁语", "、".join(banned) if banned else "无", "无", not banned)
@@ -168,6 +200,7 @@ def main():
         "file": path, "style": B["name"], "pages": n_pages, "chars": n_chars,
         "per_page": round(per_page, 1), "markers": mk,
         "missing_sections": missing,
+        "pillars": pillar_stat,
         "chapters": [{"name": n, "chars": c, "need": need, "ok": ok} for n, c, need, ok in chap_stat],
         "thin": [c[0] for c in thin], "banned": banned,
         "pass": all(c[4] == "过" or c[0] == "提示" for c in checks),
@@ -189,13 +222,23 @@ def main():
         for n, c, need, ok in chap_stat:
             flag = "" if ok else "  ← 薄"
             print("    %-8s %6d 字 / 基线 %5d%s" % (n, c, need, flag))
+    if pillar_stat:
+        print()
+        print("  五步十柱（A＝是什么／B＝凭什么；缺一根即该步残缺）：")
+        for r in pillar_stat:
+            a = "✓" if r["A"] else "✗"
+            b = "✓" if r["B"] else "✗"
+            flag = ""
+            if not (r["A"] and r["B"]):
+                flag = "  ← 该步残缺"
+            print("    %-6s A%s B%s  （本步 %5d 字）%s" % (r["step"], a, b, r["chars"], flag))
     if missing:
         print()
         print("  缺部件：%s" % "、".join(missing))
     if thin:
         print()
         print("  最该补的：%s" % "、".join(c[0] for c in thin))
-        print("  —— 补法不是加形容词，是回去补表：见 references/depth-baseline.md 的「三十张表」。")
+        print("  —— 补法不是加形容词，是回去补表：见 references/depth-baseline.md 的「五步十柱 + 三十九张表」。")
     print()
     print("  结论：%s" % ("达标" if result["pass"] else "**未达标——这稿是「薄」，不是「简洁」**"))
     sys.exit(0 if result["pass"] else 1)
