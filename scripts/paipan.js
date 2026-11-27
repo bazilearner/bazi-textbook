@@ -22,6 +22,39 @@ const ZHI_HIDE = {
   申:['庚','壬','戊'], 酉:['辛'], 戌:['戊','辛','丁'], 亥:['壬','甲']
 };
 
+/* ── 干支小工具：由「四柱字符串」直接取纳音/旬空/地势，不依赖 lunar 的内部柱 ──
+   晚子时换日会把日柱、时柱改掉，此时 lunar 的纳音/旬空仍是旧柱的，
+   故这三项一律按最终四柱重算，避免「日柱已换、纳音还留着昨日」的错配。 */
+const NAYIN = ['海中金','炉中火','大林木','路旁土','剑锋金','山头火','涧下水','城头土',
+  '白蜡金','杨柳木','泉中水','屋上土','霹雳火','松柏木','长流水','砂中金','山下火','平地木',
+  '壁上土','金箔金','覆灯火','天河水','大驿土','钗钏金','桑柘木','大溪水','沙中土','天上火',
+  '石榴木','大海水'];
+const CHANGSHENG = {甲:'亥',乙:'午',丙:'寅',丁:'酉',戊:'寅',己:'酉',庚:'巳',辛:'子',壬:'申',癸:'卯'};
+const CS_NAMES = ['长生','沐浴','冠带','临官','帝旺','衰','病','死','墓','绝','胎','养'];
+
+function gzIndex(gz) {
+  const g = GAN.indexOf(gz[0]), z = ZHI.indexOf(gz[1]);
+  if (g < 0 || z < 0) return -1;
+  for (let i = 0; i < 60; i++) if (i % 10 === g && i % 12 === z) return i;
+  return -1;
+}
+function nayin(gz) { const i = gzIndex(gz); return i < 0 ? '' : NAYIN[Math.floor(i / 2)]; }
+function xunKong(gz) {
+  const g = GAN.indexOf(gz[0]), z = ZHI.indexOf(gz[1]);
+  if (g < 0 || z < 0) return '';
+  const x = (z - g + 12) % 12;
+  return ZHI[(x + 10) % 12] + ZHI[(x + 11) % 12];
+}
+function diShi(dayGan, zhi) {
+  const start = ZHI.indexOf(CHANGSHENG[dayGan]);
+  if (start < 0) return '';
+  const yang = GAN_YY[dayGan] === 1;
+  const step = yang ? (ZHI.indexOf(zhi) - start + 12) % 12 : (start - ZHI.indexOf(zhi) + 12) % 12;
+  return CS_NAMES[step];
+}
+/* 五鼠遁：由日干起子时之干 */
+function ziGan(dayGan) { return GAN[((GAN.indexOf(dayGan) % 5) * 2) % 10]; }
+
 /** 十神：以日干为我，论目标干的十神 */
 function shiShen(dayGan, target) {
   const me = GAN_WX[dayGan], it = GAN_WX[target];
@@ -306,19 +339,57 @@ function wangXiang(monthWx) {
 }
 
 /* ---------------- 主排盘 ---------------- */
-function makeChart(dt, gender) {
+function makeChart(dt, gender, ziRule) {
   const [d, t] = dt.split(' ');
   const [Y, M, D] = d.split('-').map(Number);
   const [h, mi] = t.split(':').map(Number);
-  const solar = Solar.fromYmdHms(Y, M, D, h, mi, 0);
-  const lunar = solar.getLunar();
-  const ec = lunar.getEightChar();
+  const rule = String(ziRule || process.env.BAZI_ZI_RULE || 'next').toLowerCase();
+
+  const pad = n => String(n).padStart(2, '0');
+  const birthStr = `${Y}-${pad(M)}-${pad(D)} ${pad(h)}:${pad(mi)}:00`;
+  const solarBirth = Solar.fromYmdHms(Y, M, D, h, mi, 0);
+  const lunarBirth = solarBirth.getLunar();
+  const ecBirth = lunarBirth.getEightChar();   // 出生时刻：年月柱、起运一律以此为准
+  let ec = ecBirth;
+  let lunar = lunarBirth;
+  let zi = null;
+
+  /* ── 晚子时（23:00–24:00）换日 ────────────────────────────────────────
+     本技能准则：一天没有两个子时，第二个子时即入次日 → 日柱归 D+1。
+     lunar-typescript 的默认是「日柱算当日、时干取次日」，两者混用会排出
+     「日主与五鼠遁不符」的错盘（如 癸未日 + 甲子时，而癸日子时必为壬子），
+     故此处显式接管：
+       next（默认）→ 用「次日 00:10」整盘重排，日柱与时柱同落一个子时
+       same        → 保留当日日柱，时干按【当日日干】起（流派一的正解） */
+  if (h >= 23) {
+    if (rule === 'same') {
+      const tg = ziGan(ec.getDay()[0]) + '子';
+      zi = { rule: 'same', day: ec.getDay(), time: tg,
+             note: `晚子时按「算当日」：日柱 ${ec.getDay()}，时干由当日日干起 → 时柱 ${tg}` };
+    } else {
+      const nd = new Date(Date.UTC(Y, M - 1, D + 1));
+      const solar2 = Solar.fromYmdHms(nd.getUTCFullYear(), nd.getUTCMonth() + 1, nd.getUTCDate(), 0, 10, 0);
+      const ec2 = solar2.getLunar().getEightChar();
+      zi = { rule: 'next', day: ec2.getDay(), time: ec2.getTime(),
+             date: `${nd.getUTCFullYear()}-${pad(nd.getUTCMonth() + 1)}-${pad(nd.getUTCDate())}`,
+             note: `晚子时归次日：日柱 ${ec2.getDay()}，时柱 ${ec2.getTime()}（按次日 00:10 重排）` };
+      if (ec2.getMonth() !== ec.getMonth() || ec2.getYear() !== ec.getYear()) {
+        zi.warn = `节气恰落在 ${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')} 与次日 00:10 之间：`
+          + `本次按次日盘取月柱 ${ec2.getMonth()}；若出生时刻在节气之前，月柱应为 ${ec.getMonth()}，须人工改定`;
+      }
+      lunar = solar2.getLunar();
+      ec = ec2;
+    }
+  }
+
   const p = { year: ec.getYear(), month: ec.getMonth(), day: ec.getDay(), time: ec.getTime() };
+  if (zi && zi.rule === 'same') p.time = zi.time;   // 流派一：时干按当日日干
+
   const dayGan = p.day[0];
-  const yun = ec.getYun(gender);
+  const yun = ecBirth.getYun(gender);
   const daYun = yun.getDaYun().filter(x => x.getGanZhi());
   return {
-    solar: solar.toYmdHms(), lunar: lunar.toString(), gender, p, ec, dayGan, yun, daYun,
+    solar: birthStr, lunar: lunar.toString(), gender, p, ec, dayGan, yun, daYun, zi,
     wuxing: countWuXing(p),
     shiShen: {
       gan: [p.year[0], p.month[0], dayGan, p.time[0]].map(g => g === dayGan ? '日主' : shiShen(dayGan, g)),
@@ -346,15 +417,20 @@ function countWuXing(p) {
 function printChart(c) {
   const { p, ec, dayGan } = c;
   const gz = [p.year, p.month, p.day, p.time];
-  console.log(`公历 ${c.solar} ｜ 农历 ${c.lunar} ｜ ${c.gender === 1 ? '男' : '女'}`);
+  const ziMark = c.zi && c.zi.date ? `（晚子时，日柱归 ${c.zi.date}）` : '';
+  console.log(`公历 ${c.solar}${ziMark} ｜ 农历 ${c.lunar} ｜ ${c.gender === 1 ? '男' : '女'}`);
   console.log(`四柱：${gz.join('　')}`);
   console.log(`干十神：${c.shiShen.gan.join('　')}`);
   console.log(`支藏干：` + [p.year, p.month, p.day, p.time].map(z => ZHI_HIDE[z[1]].join('')).join('　'));
   console.log(`支十神：` + c.shiShen.zhi.map(a => '[' + a.join(',') + ']').join(' '));
-  console.log(`纳音：${[ec.getYearNaYin(), ec.getMonthNaYin(), ec.getDayNaYin(), ec.getTimeNaYin()].join('　')}`);
-  console.log(`地势：年${ec.getYearDiShi()} 月${ec.getMonthDiShi()} 日${ec.getDayDiShi()} 时${ec.getTimeDiShi()}`);
-  console.log(`旬空：年${ec.getYearXunKong()} 月${ec.getMonthXunKong()} 日${ec.getDayXunKong()} 时${ec.getTimeXunKong()}`);
+  console.log(`纳音：${gz.map(nayin).join('　')}`);
+  console.log(`地势：` + gz.map((x, i) => ['年', '月', '日', '时'][i] + diShi(dayGan, x[1])).join(' '));
+  console.log(`旬空：` + gz.map((x, i) => ['年', '月', '日', '时'][i] + xunKong(x)).join(' '));
   console.log(`胎元${ec.getTaiYuan()} 命宫${ec.getMingGong()} 身宫${ec.getShenGong()}`);
+  if (c.zi) {
+    console.log(`晚子时：${c.zi.note}`);
+    if (c.zi.warn) console.log(`  ⚠ ${c.zi.warn}`);
+  }
   const ws = countWuXing(p).count;
   console.log(`五行：` + Object.entries(ws).map(([k, v]) => `${k}${v}`).join(' '));
   console.log(`神煞：` + c.shensha.map(s => s.name + s.zhi + `(${s.base})`).join('、'));
@@ -399,7 +475,8 @@ function cli(cmd, args) {
 
   if (cmd === 'chart') {
     warnGender(args);
-    const c = makeChart(args[0], Number(args[1] ?? 1));
+    const ziIdx = args.indexOf('--zi');
+    const c = makeChart(args[0], Number(args[1] ?? 1), ziIdx >= 0 ? args[ziIdx + 1] : undefined);
     printChart(c);
   } else if (cmd === 'rel') {
     // node paipan.js rel "庚午 辛巳 庚辰 癸未" 壬午 丙午
@@ -417,7 +494,8 @@ function cli(cmd, args) {
     if (!gr.合.length && !gr.冲.length) console.log('  天干：无合无冲');
   } else if (cmd === 'full') {
     warnGender(args);
-    const c = makeChart(args[0], Number(args[1] ?? 1));
+    const ziIdx = args.indexOf('--zi');
+    const c = makeChart(args[0], Number(args[1] ?? 1), ziIdx >= 0 ? args[ziIdx + 1] : undefined);
     printChart(c);
     const y0 = Number(args[2] ?? new Date().getFullYear() - 5);
     const y1 = Number(args[3] ?? y0 + 10);
@@ -444,6 +522,7 @@ function cli(cmd, args) {
     console.log(`  ${NODE_HINT} node paipan.js chart "1990-05-15 14:20" 1`);
     console.log(`  ${NODE_HINT} node paipan.js full  "1990-05-15 14:20" 1 2020 2035`);
     console.log(`  ${NODE_HINT} node paipan.js rel   "庚午 辛巳 庚辰 癸未" 壬午 丙午   # 后两个参数为干支，不是年份`);
+    console.log('  --zi next（默认）｜--zi same ：晚子时（23:00–24:00）日柱归次日／算当日');
     console.log('  第 2 个参数是**性别**：1=男　0=女 —— 女命漏传会按「男」推大运，方向整体反向。');
   }
 }
@@ -454,5 +533,7 @@ module.exports = {
   // 避免各脚本各写一份而算法走样（曾因重复实现导致「天干层」在不同报告里结论不一）。
   ganRelations, GAN_HE5, GAN_CHONG4,
   // 人元用事（节气分野）＋旺相休囚死——wangshuai.js / geju.js 共用此一处实现
-  renYuan, wangXiang, RENYUAN, JIE_OF_MONTH, KU_MONTH
+  renYuan, wangXiang, RENYUAN, JIE_OF_MONTH, KU_MONTH,
+  // 由四柱字符串直接取纳音/旬空/地势（晚子时换日后须重算，故导出供校验）
+  _nayin: nayin, _xunKong: xunKong, _diShi: diShi, _ziGan: ziGan
 };
