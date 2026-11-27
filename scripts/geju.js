@@ -33,6 +33,12 @@ const KU = P.KU_MONTH;
 const SHUN = ['正官', '正财', '偏财', '正印', '偏印', '食神'];   // 善而顺用
 const NI = ['七杀', '伤官'];                                     // 不善而逆用
 const GE_NAME = { 正官: '正官格', 七杀: '七杀格', 正财: '正财格', 偏财: '偏财格', 正印: '正印格', 偏印: '偏印格', 食神: '食神格', 伤官: '伤官格' };
+/* 格名的兜底。**八格只收非比劫之神**，但「月令司令恰为比肩／劫财」是真会出现的：
+   庚日生巳月，巳中丙庚戊，节后十日司令为中气庚（比肩）——若直接 GE_NAME['比肩']，
+   得到 undefined，下游 `g.pick.includes(...)` 当场抛 TypeError（本技能实测崩过）。
+   此类格的正确处理是：**格名照写，但不列八格四吉四凶**，用神于月令之外求
+   （与〈论建禄月劫〉同一思路），顺逆／相神／成败三处都按「同类不作格神」走。 */
+const geNameOf = ss => GE_NAME[ss] || `${ss}格（与日主同类，不列八格，用神于月令之外求）`;
 
 /* 相神速查：格 → 可充相神之十神（须独立于日主，比肩只列次一等）
    依据《子平真诠》各格篇：官格以财或印为相；杀格以食或印为相；财格以食伤生财、官杀护财；
@@ -141,12 +147,12 @@ function quge(ch, dt) {
     reason = `月支 ${mz} 本气 ${ZHI_HIDE[mz][0]}（${geSS}）即日主自坐禄／刃之地——` +
       '**禄刃不以八格论**，《子平真诠》另立〈论建禄月劫〉：禄刃之格**于月令之外求用**（透干之财官食伤），月令本身不作格神。';
   } else if (isKu) {
-    if (ben.touCount > 0) { pick = GE_NAME[ben.ss]; geH = ben.h; geSS = ben.ss; reason = `四库月以「透干」为准：本气 ${ben.h}（${ben.ss}）透干 → 取本气为格`; }
-    else if (mid && mid.touCount > 0) { pick = GE_NAME[mid.ss]; geH = mid.h; geSS = mid.ss; reason = `四库月以「透干」为准：本气 ${ben.h}（${ben.ss}）不透，**中气 ${mid.h}（${mid.ss}）透干** → 取中气为格（杂气取用正法）`; }
-    else if (yu && yu.touCount > 0) { pick = GE_NAME[yu.ss]; geH = yu.h; geSS = yu.ss; reason = `四库月以「透干」为准：本气、中气皆不透，余气 ${yu.h}（${yu.ss}）透干 → 取之`; }
+    if (ben.touCount > 0) { pick = geNameOf(ben.ss); geH = ben.h; geSS = ben.ss; reason = `四库月以「透干」为准：本气 ${ben.h}（${ben.ss}）透干 → 取本气为格`; }
+    else if (mid && mid.touCount > 0) { pick = geNameOf(mid.ss); geH = mid.h; geSS = mid.ss; reason = `四库月以「透干」为准：本气 ${ben.h}（${ben.ss}）不透，**中气 ${mid.h}（${mid.ss}）透干** → 取中气为格（杂气取用正法）`; }
+    else if (yu && yu.touCount > 0) { pick = geNameOf(yu.ss); geH = yu.h; geSS = yu.ss; reason = `四库月以「透干」为准：本气、中气皆不透，余气 ${yu.h}（${yu.ss}）透干 → 取之`; }
     else {
       geH = ry ? ry.gan : ben.h; geSS = P.shiShen(day, geH);
-      pick = (GE_NAME[geSS] || geSS + '格') + '（藏而不透）';
+      pick = geNameOf(geSS) + '（藏而不透）';
       reason = `四库月而三字皆不透：以司令 ${geH} 取格，**格藏不显**，须待运年引出（或逢会合而出）`;
     }
   } else {
@@ -156,20 +162,20 @@ function quge(ch, dt) {
     const touOf = x => (x === ryGan) ? (ryIsBen ? ben.touCount : ryIsMid ? mid.touCount : ryIsYu ? yu.touCount : 0) : 0;
     if (ryIsBen) {
       geH = ben.h; geSS = ben.ss;
-      if (ben.touCount > 0) { pick = GE_NAME[ben.ss]; reason = `司令即本气 ${ben.h}（${ben.ss}），且**透干** → 取之为格（格显，力最足）`; }
-      else { pick = GE_NAME[ben.ss] + '（藏而不透）'; reason = `司令即本气 ${ben.h}（${ben.ss}），**不透天干** → 仍取本气为格，属「**藏用**」：格是真的，但须待运年引出该字方显`; }
+      if (ben.touCount > 0) { pick = geNameOf(ben.ss); reason = `司令即本气 ${ben.h}（${ben.ss}），且**透干** → 取之为格（格显，力最足）`; }
+      else { pick = geNameOf(ben.ss) + '（藏而不透）'; reason = `司令即本气 ${ben.h}（${ben.ss}），**不透天干** → 仍取本气为格，属「**藏用**」：格是真的，但须待运年引出该字方显`; }
       const cand = [mid, yu].filter(x => x && x.touCount > 0);
-      if (cand.length) alt = cand.map(x => `${GE_NAME[x.ss]}（${x.h}·${x.ss}透干）`).join('、');
+      if (cand.length) alt = cand.map(x => `${geNameOf(x.ss)}（${x.h}·${x.ss}透干）`).join('、');
     } else if (ryIsMid) {
       geH = mid.h; geSS = mid.ss;
-      if (mid.touCount > 0) { pick = GE_NAME[mid.ss]; reason = `本气不透，而**司令为中气 ${mid.h}（${mid.ss}）且透干** → 取中气为格（司令当权，最正）`; }
-      else { pick = GE_NAME[mid.ss] + '（藏而不透）'; reason = `司令为中气 ${mid.h}（${mid.ss}）而不透 → 以司令取格，属「藏用」`; }
-      if (ben.touCount > 0) alt = `${GE_NAME[ben.ss]}（${ben.h}·本气透干）`;
+      if (mid.touCount > 0) { pick = geNameOf(mid.ss); reason = `本气不透，而**司令为中气 ${mid.h}（${mid.ss}）且透干** → 取中气为格（司令当权，最正）`; }
+      else { pick = geNameOf(mid.ss) + '（藏而不透）'; reason = `司令为中气 ${mid.h}（${mid.ss}）而不透 → 以司令取格，属「藏用」`; }
+      if (ben.touCount > 0) alt = `${geNameOf(ben.ss)}（${ben.h}·本气透干）`;
     } else {
       geH = ben.h; geSS = ben.ss;
-      pick = GE_NAME[ben.ss]; reason = `以月支本气 ${ben.h}（${ben.ss}）取格`;
+      pick = geNameOf(ben.ss); reason = `以月支本气 ${ben.h}（${ben.ss}）取格`;
       const cand = [mid, yu].filter(x => x && x.touCount > 0);
-      if (cand.length) alt = cand.map(x => `${GE_NAME[x.ss]}（${x.h}·${x.ss}透干）`).join('、');
+      if (cand.length) alt = cand.map(x => `${geNameOf(x.ss)}（${x.h}·${x.ss}透干）`).join('、');
     }
     if (touOf(ryGan) === 0 && !alt && !ben.touCount && !(mid && mid.touCount) && !(yu && yu.touCount))
       reason += '；三字皆不透，全盘无一处显格，须靠运年';
@@ -236,7 +242,7 @@ function shunni(ch, dt) {
         `故用神定在 ${g.luUse.yong}；相神即随之定（见下节）。`
       : '禄刃不以月令取用，**于月令之外求财官食伤为用**；然天干未见财／官杀／食伤透出，用神须待运年。';
   } else if (ss === '比肩' || ss === '劫财') {
-    kind = '禄刃格外论（格神与日主同类）';
+    kind = '同类外论（格神与日主同类，非禄刃格）';
     how = `格神 ${ss} 即日主同类，比劫不列四吉四凶——不以八格论，` +
       '于月令之外求财官食伤为用（此即〈论建禄月劫〉的用法）。';
   } else if (SHUN.includes(ss)) {
@@ -256,10 +262,17 @@ function xiangshen(ch, dt) {
   const g = quge(ch, dt);
   const day = ch[2].gan;
   const key = g.geKey;                  // 禄刃格时为「月令之外透干之用神」之十神；无透干则 null
+  /* 「用神在月令之外」有两种来路，措辞必须分开，否则会把「同类格」写成「禄刃格」：
+     ① 真禄刃（月支恰为日主之禄／刃位）——月令本身不作格神；
+     ② 同类格（月令司令恰为比肩／劫财，如庚日巳月司令中气庚）——月令不是禄位，
+        只是格神与日主同类，同样不列八格、用神外求，但**不能称禄刃格**。 */
+  const isTrueLuRen = g.pick.includes('建禄') || g.pick.includes('月刃');
+  const geWord = isTrueLuRen ? '本格为禄刃格：月令不作格神'
+    : `本格格神 ${g.geH}（${g.geSS}）与日主同类，月令并非禄位，**不作建禄格论**、亦不列八格四吉四凶`;
   const out = ['── 相神候选（《论相神紧要》：「伤用神甚于伤身，**伤相甚于伤用**」）──'];
   const xs = key ? XIANGSHEN[key] : null;
   if (!key && g.luUse) {
-    out.push('  本格为禄刃格：月令不作格神，用神取月令之外那一分——' + g.luUse.word + '。' +
+    out.push('  ' + geWord + '，用神取月令之外那一分——' + g.luUse.word + '。' +
       '本命天干未见财／官杀／食伤透出，**用神与相神皆须待运年到场**。');
   } else if (!key) {
     out.push('  本格格神与日主同类（比劫），不列四吉四凶，故无传统相神速查条目；' +
@@ -267,7 +280,7 @@ function xiangshen(ch, dt) {
   } else if (!xs) {
     out.push(`  本格格神为 ${key}，无传统相神速查条目；相神须于日主之外的得力之字里别求。`);
   } else if (g.luUse) {
-    out.push(`  本格为禄刃格，月令不作格神：**用神取月令之外的透干之 ${key}**（${g.luUse.word}），` +
+    out.push(`  ${geWord}：**用神取月令之外的透干之 ${key}**（${g.luUse.word}），` +
       `相神即随之定——${xs.相.join('、')}（${xs.说明}）。`);
   } else {
     out.push(`  本格为 ${GE_NAME[key]}（格神 ${g.geH}），传统相神取向：${xs.相.join('、')}（${xs.说明}）`);
@@ -313,12 +326,15 @@ function chengbai(ch, dt) {
   //    ⚠ 禄刃格／格神为比劫时，用神在**月令之外**（透干之财官食伤），故①与②要改口：
   //    ① 只论「月令（禄位）之根基稳不稳」；② 改论「月令之外那一分用神」的干头与根气。
   const isLuRen = !!g.luUse;
+  const isTrueLuRen2 = g.pick.includes('建禄') || g.pick.includes('月刃');
   let yongZhi = mz, yongGan = g.geH;
   if (isLuRen && g.luUse.yong && g.luUse.gan) yongGan = g.luUse.gan;
   const chongYue = r.冲.filter(x => x.includes('月'));
   const heYue = r.六合.filter(x => x.includes('月'));
   line('① ' + (isLuRen
-    ? '月令（禄位 ' + mz + '）之根基是否受制　※ 禄刃格月令不作格神，用神在月令之外（见②）'
+    ? (isTrueLuRen2
+      ? '月令（禄位 ' + mz + '）之根基是否受制　※ 禄刃格月令不作格神，用神在月令之外（见②）'
+      : '月令 ' + mz + ' 之根基是否受制　※ 格神与日主同类，不列八格，用神于月令之外求（见②）')
     : '用神（格神 ' + yongGan + '·' + key +
       (g.geH === g.ben.h ? '，即月支本气' : '，取自月支中／余气（透干取格）') + '）是否受制'),
     (chongYue.length ? '**月令被冲**：' + chongYue.join('；') + '　' : '月令无冲　') +
